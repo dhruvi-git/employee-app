@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-4">
+    <h2 class="mb-4 text-center">Dhruvi's Employee Management Portal</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="GET" action="/" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Search by name..." value="{{ search_query }}">
+                <button type="submit" class="btn btn-outline-primary">Search</button>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">Add New Employee</button>
+        </div>
+    </div>
+
+    <table class="table table-bordered table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th><th>Name</th><th>Email</th><th>Department</th><th>Designation</th><th>Salary</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.id }}</td>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.email }}</td>
+                <td>{{ emp.department }}</td>
+                <td>{{ emp.designation }}</td>
+                <td>${{ "%.2f"|format(emp.salary) }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ emp.id }}">Edit</button>
+                    <a href="/delete/{{ emp.id }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this record?')">Delete</a>
+                </td>
+            </tr>
+
+            <!-- Edit Modal -->
+            <div class="modal fade" id="editModal{{ emp.id }}" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <form action="/update/{{ emp.id }}" method="POST">
+                    <div class="modal-header"><h5 class="modal-title">Edit Employee</h5></div>
+                    <div class="modal-body">
+                      <input type="text" name="name" class="form-control mb-2" value="{{ emp.name }}" required>
+                      <input type="email" name="email" class="form-control mb-2" value="{{ emp.email }}" required>
+                      <input type="text" name="department" class="form-control mb-2" value="{{ emp.department }}" required>
+                      <input type="text" name="designation" class="form-control mb-2" value="{{ emp.designation }}" required>
+                      <input type="number" step="0.01" name="salary" class="form-control mb-2" value="{{ emp.salary }}" required>
+                    </div>
+                    <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form action="/add" method="POST">
+            <div class="modal-header"><h5 class="modal-title">New Employee</h5></div>
+            <div class="modal-body">
+              <input type="text" name="name" class="form-control mb-2" placeholder="Full Name" required>
+              <input type="email" name="email" class="form-control mb-2" placeholder="Email Address" required>
+              <input type="text" name="department" class="form-control mb-2" placeholder="Department" required>
+              <input type="text" name="designation" class="form-control mb-2" placeholder="Designation" required>
+              <input type="number" step="0.01" name="salary" class="form-control mb-2" placeholder="Salary" required>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-success">Add Record</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
