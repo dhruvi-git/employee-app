@@ -1,16 +1,18 @@
 import os
+from urllib.parse import quote_plus
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dhruvi-secret-key")
 
-# Azure SQL Connection String Configuration
+# Database Connection Setup
 db_url = os.environ.get('DATABASE_URL')
+
 if db_url and db_url.startswith("odbc:"):
-    # Format ODBC string for SQLAlchemy
-    from urllib.parse import quote_plus
-    params = quote_plus(db_url.replace("odbc:", ""))
+    # Clean up ODBC connection string for SQLAlchemy
+    raw_odbc = db_url.replace("odbc:", "")
+    params = quote_plus(raw_odbc)
     app.config['SQLALCHEMY_DATABASE_URI'] = f"mssql+pyodbc:///?odbc_connect={params}"
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///local_employee.db'
@@ -18,7 +20,7 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Employee Model
+# Employee Data Model
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -27,17 +29,32 @@ class Employee(db.Model):
     designation = db.Column(db.String(50), nullable=False)
     salary = db.Column(db.Float, nullable=False)
 
-with app.app_context():
-    db.create_all()
+# Safe Table Creation (Prevents container startup crash)
+tables_created = False
+
+@app.before_request
+def initialize_database():
+    global tables_created
+    if not tables_created:
+        try:
+            db.create_all()
+            tables_created = True
+        except Exception as e:
+            app.logger.error(f"Database setup warning: {e}")
 
 # READ & SEARCH
 @app.route('/')
 def index():
     search_query = request.args.get('search', '')
-    if search_query:
-        employees = Employee.query.filter(Employee.name.ilike(f"%{search_query}%")).all()
-    else:
-        employees = Employee.query.all()
+    try:
+        if search_query:
+            employees = Employee.query.filter(Employee.name.ilike(f"%{search_query}%")).all()
+        else:
+            employees = Employee.query.all()
+    except Exception as e:
+        employees = []
+        flash(f'Database connection error: {str(e)}', 'danger')
+        
     return render_template('index.html', employees=employees, search_query=search_query)
 
 # CREATE
