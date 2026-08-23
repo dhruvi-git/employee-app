@@ -2,15 +2,18 @@ import os
 from urllib.parse import quote_plus
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS  # Installed via pip install flask-cors
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dhruvi-secret-key")
+
+# Enable CORS (Allows all origins '*')
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Database Connection Setup
 db_url = os.environ.get('DATABASE_URL')
 
 if db_url and db_url.startswith("odbc:"):
-    # Clean up ODBC connection string for SQLAlchemy
     raw_odbc = db_url.replace("odbc:", "")
     params = quote_plus(raw_odbc)
     app.config['SQLALCHEMY_DATABASE_URI'] = f"mssql+pyodbc:///?odbc_connect={params}"
@@ -29,7 +32,7 @@ class Employee(db.Model):
     designation = db.Column(db.String(50), nullable=False)
     salary = db.Column(db.Float, nullable=False)
 
-# Safe Table Creation (Prevents container startup crash)
+# Safe Table Creation
 tables_created = False
 
 @app.before_request
@@ -106,5 +109,7 @@ def delete_employee(id):
         flash(f'Error deleting employee: {str(e)}', 'danger')
     return redirect(url_for('index'))
 
+# DYNAMIC PORT BINDING FOR AZURE APP SERVICE
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host='0.0.0.0', port=port)
